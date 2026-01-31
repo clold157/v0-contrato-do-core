@@ -14,6 +14,7 @@ import { tenantModuleService } from '@/src/adapters/prisma/modules/tenant-module
 import { globalModuleServiceRegistry } from '@/src/core';
 import { asModuleId, asUUID } from '@/src/core/types';
 import type { MenuOnlineService } from '@/src/modules/menu-online/src/services/menu-online.service';
+import { MenuOnlineOrderService } from '@/src/modules/menu-online/src/services/menu-online-order.service';
 import type {
   MenuOnlineAvailabilityWindow,
   MenuOnlineCreateCategoryRequest,
@@ -32,6 +33,7 @@ import type {
   MenuOnlineUpdateProductRequest,
   MenuOnlineUpdateSettingsRequest,
 } from '@/src/types/menu-online';
+import type { CreateOrderDTO, OrderDTO } from '@/src/types/menu-online-order';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -1734,12 +1736,119 @@ async function handleGetPublicMenu(req: Request, res: Response): Promise<void> {
   }
 }
 
+async function handlePublicCheckout(req: Request, res: Response): Promise<void> {
+  try {
+    const { tenantSlug } = req.params;
+    const body = req.body as CreateOrderDTO;
+
+    if (!tenantSlug || !body) {
+      res.status = 400;
+      res.body = { error: 'Bad Request', message: 'Missing required fields' };
+      return;
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: tenantSlug },
+    });
+
+    if (!tenant) {
+      res.status = 404;
+      res.body = { error: 'Not Found', message: 'Tenant not found' };
+      return;
+    }
+
+    if (tenant.status !== 'active') {
+      res.status = 403;
+      res.body = { error: 'Forbidden', message: 'Tenant is not active' };
+      return;
+    }
+
+    const isModuleActive = await tenantModuleService.isModuleActive(tenant.id, asModuleId('menu-online'));
+    if (!isModuleActive) {
+      res.status = 404;
+      res.body = { error: 'Not Found', message: 'Menu online module is not active' };
+      return;
+    }
+
+    const orderService = new MenuOnlineOrderService(prisma);
+    const orderData: CreateOrderDTO = {
+      ...body,
+      tenantId: tenant.id,
+    };
+
+    const order = await orderService.createOrder(orderData);
+
+    res.status = 201;
+    res.body = { success: true, data: order };
+  } catch (error) {
+    console.error('[v0] Error creating order:', error);
+    res.status = 500;
+    res.body = {
+      error: 'Internal Server Error',
+      message: error instanceof Error ? error.message : 'Failed to create order',
+    };
+  }
+}
+
+async function handleGetOrderByCode(req: Request, res: Response): Promise<void> {
+  try {
+    const { tenantSlug, orderCode } = req.params;
+
+    if (!tenantSlug || !orderCode) {
+      res.status = 400;
+      res.body = { error: 'Bad Request', message: 'Missing required parameters' };
+      return;
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: tenantSlug },
+    });
+
+    if (!tenant) {
+      res.status = 404;
+      res.body = { error: 'Not Found', message: 'Tenant not found' };
+      return;
+    }
+
+    const orderService = new MenuOnlineOrderService(prisma);
+    const order = await orderService.getOrderByPublicCode(tenant.id, orderCode);
+
+    if (!order) {
+      res.status = 404;
+      res.body = { error: 'Not Found', message: 'Order not found' };
+      return;
+    }
+
+    res.status = 200;
+    res.body = { success: true, data: order };
+  } catch (error) {
+    console.error('[v0] Error fetching order:', error);
+    res.status = 500;
+    res.body = {
+      error: 'Internal Server Error',
+      message: error instanceof Error ? error.message : 'Failed to fetch order',
+    };
+  }
+}
+
 export const menuOnlinePublicRoutes: Route[] = [
   {
     method: 'GET',
     path: '/menu/:tenantSlug',
     middlewares: [requestLogger, errorHandler],
     handler: handleGetPublicMenu,
+  },
+  {
+    method: 'POST',
+    path: '/menu/:tenantSlug/checkout',
+    middlewares: [requestLogger, errorHandler],
+    handler: handlePublicCheckout,
+  },
+  {
+    method: 'GET',
+    path: '/menu/:tenantSlug/orders/:orderCode',
+    middlewares: [requestLogger, errorHandler],
+    handler: handleGetOrderByCode,
   },
 ];
 
