@@ -1,12 +1,21 @@
 -- Migration: Create Menu Online Orders tables
 -- Description: Adds Order, OrderItem, and OrderItemModifier tables for menu-online module
 
--- Create ENUM types
-CREATE TYPE "OrderStatus" AS ENUM ('pending', 'confirmed', 'preparing', 'ready', 'in_delivery', 'completed', 'cancelled');
-CREATE TYPE "OrderDeliveryType" AS ENUM ('delivery', 'pickup', 'dine_in');
+-- Create ENUM types if they don't exist
+DO $$ BEGIN
+    CREATE TYPE "OrderStatus" AS ENUM ('pending', 'confirmed', 'preparing', 'ready', 'in_delivery', 'completed', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "OrderDeliveryType" AS ENUM ('delivery', 'pickup', 'dine_in');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- Create menu_online_orders table
-CREATE TABLE "menu_online_orders" (
+CREATE TABLE IF NOT EXISTS "menu_online_orders" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "tenant_id" TEXT NOT NULL,
     "public_order_code" TEXT NOT NULL,
@@ -30,13 +39,11 @@ CREATE TABLE "menu_online_orders" (
     "delivery_reference" TEXT,
     "notes" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    
-    CONSTRAINT "menu_online_orders_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "updated_at" TIMESTAMP(3) NOT NULL
 );
 
 -- Create menu_online_order_items table
-CREATE TABLE "menu_online_order_items" (
+CREATE TABLE IF NOT EXISTS "menu_online_order_items" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "tenant_id" TEXT NOT NULL,
     "order_id" TEXT NOT NULL,
@@ -49,36 +56,32 @@ CREATE TABLE "menu_online_order_items" (
     "quantity" INTEGER NOT NULL,
     "total" DOUBLE PRECISION NOT NULL,
     "notes" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    CONSTRAINT "menu_online_order_items_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "menu_online_orders"("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create menu_online_order_item_modifiers table
-CREATE TABLE "menu_online_order_item_modifiers" (
+CREATE TABLE IF NOT EXISTS "menu_online_order_item_modifiers" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "tenant_id" TEXT NOT NULL,
     "order_item_id" TEXT NOT NULL,
     "modifier_name" TEXT NOT NULL,
     "option_name" TEXT NOT NULL,
     "price_delta" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    CONSTRAINT "menu_online_order_item_modifiers_order_item_id_fkey" FOREIGN KEY ("order_item_id") REFERENCES "menu_online_order_items"("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for menu_online_orders
-CREATE UNIQUE INDEX "menu_online_orders_tenant_id_public_order_code_key" ON "menu_online_orders"("tenant_id", "public_order_code");
-CREATE INDEX "menu_online_orders_tenant_id_idx" ON "menu_online_orders"("tenant_id");
-CREATE INDEX "menu_online_orders_public_order_code_idx" ON "menu_online_orders"("public_order_code");
-CREATE INDEX "menu_online_orders_status_idx" ON "menu_online_orders"("status");
-CREATE INDEX "menu_online_orders_created_at_idx" ON "menu_online_orders"("created_at");
+CREATE UNIQUE INDEX IF NOT EXISTS "menu_online_orders_tenant_id_public_order_code_key" ON "menu_online_orders"("tenant_id", "public_order_code");
+CREATE INDEX IF NOT EXISTS "menu_online_orders_tenant_id_idx" ON "menu_online_orders"("tenant_id");
+CREATE INDEX IF NOT EXISTS "menu_online_orders_public_order_code_idx" ON "menu_online_orders"("public_order_code");
+CREATE INDEX IF NOT EXISTS "menu_online_orders_status_idx" ON "menu_online_orders"("status");
+CREATE INDEX IF NOT EXISTS "menu_online_orders_created_at_idx" ON "menu_online_orders"("created_at");
 
 -- Create indexes for menu_online_order_items
-CREATE INDEX "menu_online_order_items_tenant_id_idx" ON "menu_online_order_items"("tenant_id");
-CREATE INDEX "menu_online_order_items_order_id_idx" ON "menu_online_order_items"("order_id");
-CREATE INDEX "menu_online_order_items_product_id_idx" ON "menu_online_order_items"("product_id");
+CREATE INDEX IF NOT EXISTS "menu_online_order_items_tenant_id_idx" ON "menu_online_order_items"("tenant_id");
+CREATE INDEX IF NOT EXISTS "menu_online_order_items_order_id_idx" ON "menu_online_order_items"("order_id");
+CREATE INDEX IF NOT EXISTS "menu_online_order_items_product_id_idx" ON "menu_online_order_items"("product_id");
 
 -- Create indexes for menu_online_order_item_modifiers
-CREATE INDEX "menu_online_order_item_modifiers_tenant_id_idx" ON "menu_online_order_item_modifiers"("tenant_id");
-CREATE INDEX "menu_online_order_item_modifiers_order_item_id_idx" ON "menu_online_order_item_modifiers"("order_item_id");
+CREATE INDEX IF NOT EXISTS "menu_online_order_item_modifiers_tenant_id_idx" ON "menu_online_order_item_modifiers"("tenant_id");
+CREATE INDEX IF NOT EXISTS "menu_online_order_item_modifiers_order_item_id_idx" ON "menu_online_order_item_modifiers"("order_item_id");
