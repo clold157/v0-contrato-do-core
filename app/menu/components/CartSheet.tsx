@@ -41,28 +41,51 @@ export function CartSheet({ menuData, tenantSlug }: CartSheetProps) {
   const totalItems = getTotalItems();
   const totalPrice = getTotalPrice();
 
+  const totalSavings = items.reduce((acc, item) => {
+    const product = menuData.products.find((p) => p.id === item.productId);
+    if (product?.promoPrice && product.promoPrice < product.basePrice) {
+      return acc + (product.basePrice - product.promoPrice) * item.quantity;
+    }
+    return acc;
+  }, 0);
+
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button size="icon" variant="outline" className="relative">
+        <Button 
+          size="icon" 
+          className={`relative ${totalItems > 0 ? 'animate-pulse bg-primary' : 'bg-primary'}`}
+        >
           <ShoppingCart className="w-5 h-5" />
           {totalItems > 0 && (
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
+            <Badge className="absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center p-0 text-xs bg-destructive text-destructive-foreground font-bold">
               {totalItems}
             </Badge>
           )}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-lg flex flex-col">
-        <SheetHeader>
-          <SheetTitle>Seu Pedido</SheetTitle>
+        <SheetHeader className="space-y-2">
+          <SheetTitle className="text-2xl font-bold">Seu Pedido</SheetTitle>
+          {totalItems > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {totalItems} {totalItems === 1 ? 'item' : 'itens'} adicionado{totalItems === 1 ? '' : 's'}
+            </p>
+          )}
         </SheetHeader>
 
         {items.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <ShoppingCart className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Seu carrinho está vazio</p>
+            <div className="text-center space-y-4 p-8">
+              <div className="w-20 h-20 rounded-full bg-muted mx-auto flex items-center justify-center">
+                <ShoppingCart className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-semibold text-lg mb-1">Carrinho vazio</p>
+                <p className="text-sm text-muted-foreground text-balance">
+                  Adicione itens deliciosos do cardápio para começar seu pedido
+                </p>
+              </div>
             </div>
           </div>
         ) : (
@@ -134,28 +157,43 @@ export function CartSheet({ menuData, tenantSlug }: CartSheetProps) {
               </div>
             </ScrollArea>
 
-            <div className="space-y-4 pt-4 border-t">
-              <div className="space-y-2">
+            <div className="space-y-4 pt-4 border-t bg-muted/30 -mx-6 px-6 pb-6">
+              {totalSavings > 0 && (
+                <div className="bg-success/10 border border-success/20 rounded-lg p-3 flex items-center gap-2">
+                  <Badge className="bg-success text-success-foreground">Economia</Badge>
+                  <span className="text-sm font-semibold text-success">
+                    Você está economizando R$ {totalSavings.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              
+              <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>R$ {totalPrice.toFixed(2)}</span>
+                  <span className="font-semibold">R$ {totalPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Taxa de entrega</span>
-                  <span>R$ 5,00</span>
+                  <span className="font-semibold">R$ 5,00</span>
                 </div>
-                <Separator />
-                <div className="flex items-center justify-between text-lg font-bold">
-                  <span>Total</span>
-                  <span>R$ {(totalPrice + 5).toFixed(2)}</span>
+                <Separator className="my-2" />
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-bold">Total</span>
+                  <span className="text-2xl font-bold text-primary">
+                    R$ {(totalPrice + 5).toFixed(2)}
+                  </span>
                 </div>
               </div>
 
-              <Button size="lg" className="w-full" asChild>
+              <Button size="lg" className="w-full h-14 text-base font-bold shadow-lg" asChild>
                 <Link href={`/menu/${tenantSlug}/checkout`}>
                   Finalizar Pedido
                 </Link>
               </Button>
+              
+              <p className="text-xs text-center text-muted-foreground">
+                Pedido enviado direto para o restaurante
+              </p>
             </div>
           </>
         )}

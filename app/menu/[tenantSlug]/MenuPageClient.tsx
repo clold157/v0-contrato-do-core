@@ -65,24 +65,25 @@ export function MenuPageClient({ menuData, tenantSlug }: MenuPageClientProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background border-b">
+      <header className="sticky top-0 z-50 bg-card border-b shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-balance">{menuData.tenant.name}</h1>
-              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Badge variant={isOpen ? 'default' : 'secondary'} className="text-xs">
-                    {isOpen ? 'Aberto' : 'Fechado'}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold text-balance mb-2">{menuData.tenant.name}</h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge 
+                  variant={isOpen ? 'default' : 'secondary'} 
+                  className={`text-xs font-semibold ${isOpen ? 'bg-success text-success-foreground' : ''}`}
+                >
+                  {isOpen ? 'Aberto agora' : 'Fechado'}
+                </Badge>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4" />
-                  <span>{prepTime}</span>
+                  <span className="font-medium">{prepTime}</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <MapPin className="w-4 h-4" />
-                  <span>Delivery</span>
+                  <span className="font-medium">Delivery disponível</span>
                 </div>
               </div>
             </div>

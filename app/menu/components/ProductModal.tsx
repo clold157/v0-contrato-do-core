@@ -15,6 +15,7 @@ import { Minus, Plus } from 'lucide-react';
 import Image from 'next/image';
 import type { MenuOnlineProductDTO, MenuOnlinePublicMenuDTO } from '@/src/types/menu-online';
 import { useCart } from '../context/CartContext';
+import { UpsellModal } from './UpsellModal';
 
 interface ProductModalProps {
   product: MenuOnlineProductDTO;
@@ -31,6 +32,7 @@ export function ProductModal({ product, isOpen, onClose, menuData }: ProductModa
   );
   const [selectedModifiers, setSelectedModifiers] = useState<Record<string, string[]>>({});
   const [notes, setNotes] = useState('');
+  const [showUpsell, setShowUpsell] = useState(false);
 
   const hasPromo = product.promoPrice !== null;
   const basePrice = hasPromo ? product.promoPrice : product.basePrice;
@@ -106,66 +108,80 @@ export function ProductModal({ product, isOpen, onClose, menuData }: ProductModa
     });
     
     onClose();
+    setShowUpsell(true);
+  };
+
+  const handleCloseUpsell = () => {
+    setShowUpsell(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="sr-only">{product.name}</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{product.name}</DialogTitle>
         </DialogHeader>
         
         {product.images.length > 0 && (
-          <div className="relative w-full h-64 -mt-6 -mx-6 mb-4">
+          <div className="relative w-full h-72">
             <Image
               src={product.images[0].url}
               alt={product.images[0].altText || product.name}
               fill
               className="object-cover"
+              priority
             />
             {hasPromo && (
-              <Badge className="absolute top-4 left-4 bg-destructive text-destructive-foreground">
-                Promoção
+              <Badge className="absolute top-4 left-4 bg-destructive text-destructive-foreground font-bold text-sm shadow-lg">
+                -{Math.round(((product.basePrice - (basePrice || 0)) / product.basePrice) * 100)}% OFF
               </Badge>
             )}
           </div>
         )}
 
-        <div>
-          <h2 className="text-2xl font-bold mb-2">{product.name}</h2>
+        <div className="p-6 pb-0">
+          <h2 className="text-2xl font-bold mb-2 text-balance leading-tight">{product.name}</h2>
           {product.description && (
-            <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+            <p className="text-muted-foreground leading-relaxed text-pretty">{product.description}</p>
           )}
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-4">
             {hasPromo && (
-              <span className="text-sm text-muted-foreground line-through">
+              <span className="text-base text-muted-foreground line-through">
                 R$ {product.basePrice.toFixed(2)}
               </span>
             )}
-            <span className="text-xl font-bold">
+            <span className="text-2xl font-bold text-primary">
               R$ {(basePrice || 0).toFixed(2)}
             </span>
           </div>
         </div>
+        
+        <div className="px-6 space-y-6">
 
-        {product.priceVariations.length > 0 && (
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Tamanho</Label>
-            <RadioGroup value={selectedVariationId || ''} onValueChange={setSelectedVariationId}>
-              {product.priceVariations.map((variation) => (
-                <div key={variation.id} className="flex items-center justify-between border rounded-lg p-3">
-                  <div className="flex items-center gap-3">
-                    <RadioGroupItem value={variation.id} id={variation.id} />
-                    <Label htmlFor={variation.id} className="cursor-pointer">
-                      {variation.name}
-                    </Label>
+          {product.priceVariations.length > 0 && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-base font-bold">Escolha o tamanho</Label>
+                <p className="text-xs text-muted-foreground mt-1">Obrigatório</p>
+              </div>
+              <RadioGroup value={selectedVariationId || ''} onValueChange={setSelectedVariationId}>
+                {product.priceVariations.map((variation) => (
+                  <div 
+                    key={variation.id} 
+                    className="flex items-center justify-between border-2 rounded-xl p-4 hover:border-primary transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value={variation.id} id={variation.id} />
+                      <Label htmlFor={variation.id} className="cursor-pointer font-semibold">
+                        {variation.name}
+                      </Label>
+                    </div>
+                    <span className="font-bold text-primary">R$ {variation.price.toFixed(2)}</span>
                   </div>
-                  <span className="font-semibold">R$ {variation.price.toFixed(2)}</span>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-        )}
+                ))}
+              </RadioGroup>
+            </div>
+          )}
 
         {modifierGroups.map(({ group, options }) => {
           const isRadio = group.maxSelect === 1;
@@ -250,47 +266,60 @@ export function ProductModal({ product, isOpen, onClose, menuData }: ProductModa
           );
         })}
 
-        <div className="space-y-2">
-          <Label htmlFor="notes">Observações</Label>
-          <Textarea
-            id="notes"
-            placeholder="Alguma observação? Ex: Tirar cebola, sem picante..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="text-sm font-semibold">Alguma observação?</Label>
+            <Textarea
+              id="notes"
+              placeholder="Ex: Tirar cebola, sem picante, ponto da carne..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="flex items-center gap-3">
+        <div className="sticky bottom-0 bg-card border-t p-4 shadow-lg">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 bg-muted rounded-xl p-2">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={quantity <= 1}
+                className="h-10 w-10"
+              >
+                <Minus className="w-5 h-5" />
+              </Button>
+              <span className="text-xl font-bold w-10 text-center">{quantity}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setQuantity(quantity + 1)}
+                className="h-10 w-10"
+              >
+                <Plus className="w-5 h-5" />
+              </Button>
+            </div>
+            
             <Button
-              size="icon"
-              variant="outline"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              disabled={quantity <= 1}
+              size="lg"
+              onClick={handleAddToCart}
+              disabled={!canAddToCart}
+              className="flex-1 h-14 text-base font-bold shadow-lg"
             >
-              <Minus className="w-4 h-4" />
-            </Button>
-            <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => setQuantity(quantity + 1)}
-            >
-              <Plus className="w-4 h-4" />
+              {canAddToCart ? `Adicionar • R$ ${totalPrice.toFixed(2)}` : 'Selecione as opções obrigatórias'}
             </Button>
           </div>
-          
-          <Button
-            size="lg"
-            onClick={handleAddToCart}
-            disabled={!canAddToCart}
-            className="flex-1 ml-4"
-          >
-            Adicionar • R$ {totalPrice.toFixed(2)}
-          </Button>
         </div>
       </DialogContent>
+      
+      <UpsellModal 
+        isOpen={showUpsell} 
+        onClose={handleCloseUpsell} 
+        menuData={menuData}
+        excludeProductId={product.id}
+      />
     </Dialog>
   );
 }
