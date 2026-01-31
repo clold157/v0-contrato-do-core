@@ -13,9 +13,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Minus, Plus } from 'lucide-react';
 import Image from 'next/image';
-import type { MenuOnlineProductDTO, MenuOnlinePublicMenuDTO } from '../types';
+import type { MenuOnlineProductDTO, MenuOnlinePublicMenuDTO } from '@/src/types/menu-online';
 import { useCart } from '../context/CartContext';
-import { UpsellModal } from './UpsellModal';
 
 interface ProductModalProps {
   product: MenuOnlineProductDTO;
@@ -32,7 +31,6 @@ export function ProductModal({ product, isOpen, onClose, menuData }: ProductModa
   );
   const [selectedModifiers, setSelectedModifiers] = useState<Record<string, string[]>>({});
   const [notes, setNotes] = useState('');
-  const [showUpsell, setShowUpsell] = useState(false);
 
   const hasPromo = product.promoPrice !== null;
   const basePrice = hasPromo ? product.promoPrice : product.basePrice;
@@ -108,11 +106,6 @@ export function ProductModal({ product, isOpen, onClose, menuData }: ProductModa
     });
     
     onClose();
-    setShowUpsell(true);
-  };
-
-  const handleCloseUpsell = () => {
-    setShowUpsell(false);
   };
 
   return (
@@ -298,12 +291,6 @@ export function ProductModal({ product, isOpen, onClose, menuData }: ProductModa
           </Button>
         </div>
       </DialogContent>
-      
-      <UpsellModal 
-        isOpen={showUpsell} 
-        onClose={handleCloseUpsell} 
-        menuData={menuData} 
-      />
     </Dialog>
   );
 }

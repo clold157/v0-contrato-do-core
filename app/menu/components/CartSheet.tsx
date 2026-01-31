@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import type { MenuOnlinePublicMenuDTO } from '../types';
+import type { MenuOnlinePublicMenuDTO } from '@/src/types/menu-online';
 import Link from 'next/link';
 
 interface CartSheetProps {

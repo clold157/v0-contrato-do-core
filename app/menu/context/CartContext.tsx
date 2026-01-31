@@ -1,11 +1,19 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem } from '../types';
+
+export interface CartItemData {
+  productId: string;
+  variationId?: string | null;
+  quantity: number;
+  modifierOptionIds: string[];
+  notes?: string;
+  price: number;
+}
 
 interface CartContextType {
-  items: CartItem[];
-  addItem: (item: CartItem) => void;
+  items: CartItemData[];
+  addItem: (item: CartItemData) => void;
   removeItem: (index: number) => void;
   updateQuantity: (index: number, quantity: number) => void;
   clearCart: () => void;
@@ -16,11 +24,11 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItemData[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('cart');
+    const stored = localStorage.getItem('menu_cart');
     if (stored) {
       try {
         setItems(JSON.parse(stored));
@@ -33,11 +41,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem('cart', JSON.stringify(items));
+      localStorage.setItem('menu_cart', JSON.stringify(items));
     }
   }, [items, isLoaded]);
 
-  const addItem = (item: CartItem) => {
+  const addItem = (item: CartItemData) => {
     setItems((prev) => [...prev, item]);
   };
 
